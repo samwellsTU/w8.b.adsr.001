@@ -3,6 +3,7 @@ let attack = 1; //attack time in seconds
 let decay = 1; // decay time in senconds
 let sustain = 0.25; // sustain amplitude in linear amplitude
 let release = 1; // release time in seconds
+let frequency = 110;
 
 //----------WEB AUDIO CONTEXT-------------------
 /**
@@ -40,6 +41,12 @@ masterGain.connect(thisAudio.destination);
 
 //---------FUNCTIONS--------------
 
+const endOsc = function () {
+  myOsc.disconnect(ampEnv);
+  myOsc = null;
+  console.log("hey that myoscillator stopped");
+};
+
 /**
  * Creates and starts an oscillator with a triangle waveform at 220 Hz.
  * The oscillator is connected to the amplitude envelope gain node.
@@ -48,11 +55,14 @@ const playNote = function () {
   // saves current time for reference
   let now = thisAudio.currentTime;
   myOsc = thisAudio.createOscillator();
-  myOsc.frequency.value = 220;
+  myOsc.onended = endOsc;
+
+  myOsc.frequency.value = frequency;
   myOsc.type = "triangle";
   myOsc.connect(ampEnv);
   myOsc.start();
-
+  //clear our any exisiting ramps
+  ampEnv.gain.cancelScheduledValues(now);
   //load the correct value into our ramp.
   ampEnv.gain.setValueAtTime(ampEnv.gain.value, now);
   //attack
@@ -68,8 +78,8 @@ const playNote = function () {
 const stopNote = function () {
   // saves current time for reference
   let now = thisAudio.currentTime;
-  console.log(now);
-  console.log(typeof now);
+  //clear our any exisiting ramps
+  ampEnv.gain.cancelScheduledValues(now);
   //load the correct value into our ramp.
   ampEnv.gain.setValueAtTime(ampEnv.gain.value, now);
 
@@ -77,8 +87,6 @@ const stopNote = function () {
   ampEnv.gain.linearRampToValueAtTime(0, now + release);
 
   myOsc.stop(now + release + 0.01);
-  //   myOsc.disconnect(ampEnv);
-  //   myOsc = null; // Reset to null after stopping
 };
 
 //---------EVENT LISTENERS--------------
@@ -98,3 +106,31 @@ let stopButton = document.getElementById("stop");
 // Add event listeners to buttons
 startButton.addEventListener("click", playNote);
 stopButton.addEventListener("click", stopNote);
+
+let isPlaying = false;
+
+document.addEventListener("keydown", function (event) {
+  if (!isPlaying) {
+    if (event.key == "a") {
+      frequency = 261.63;
+      playNote();
+      isPlaying = true;
+    } else if (event.key == "s") {
+      frequency = 296.66;
+      playNote();
+      isPlaying = true;
+    }
+  }
+});
+
+document.addEventListener("keyup", function (event) {
+  if (isPlaying) {
+    if (event.key == "a") {
+      stopNote();
+      isPlaying = false;
+    } else if (event.key == "s") {
+      stopNote();
+      isPlaying = false;
+    }
+  }
+});
